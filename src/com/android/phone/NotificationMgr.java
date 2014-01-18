@@ -277,8 +277,6 @@ public class NotificationMgr {
         PhoneLookup._ID
     };
 
-
-
     /**
      * Updates the message waiting indicator (voicemail) notification.
      *
@@ -292,8 +290,15 @@ public class NotificationMgr {
                 R.drawable.stat_notify_voicemail_sub3};
 
         int notificationId = getNotificationId(VOICEMAIL_NOTIFICATION, phoneId);
+        int resId;
         if (visible) {
-            int resId = android.R.drawable.stat_notify_voicemail;
+            if (Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.KEY_VOICEMAIL_BREATH, 0) == 1) {
+                resId = R.drawable.stat_notify_voicemail_breath;
+            } else {
+                resId = android.R.drawable.stat_notify_voicemail;
+            }
+           // TODO: modify above logic for isMultiSimEnabled below
             if (PhoneUtils.isMultiSimEnabled()) {
                 resId = mwiIcon[phoneId];
             }
@@ -384,7 +389,9 @@ public class NotificationMgr {
             }
 
             Notification.Builder builder = new Notification.Builder(mContext);
-            builder.setSmallIcon(resId)
+            if (Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.KEY_MISSED_CALL_BREATH, 0) == 1) {
+                builder.setSmallIcon(android.R.drawable.stat_notify_missed_call_breath)
                     .setWhen(System.currentTimeMillis())
                     .setContentTitle(notificationTitle)
                     .setContentText(notificationText)
@@ -392,6 +399,16 @@ public class NotificationMgr {
                     .setSound(ringtoneUri)
                     .setColor(mContext.getResources().getColor(R.color.dialer_theme_color))
                     .setOngoing(false);
+            } else {
+                builder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
+                    .setWhen(System.currentTimeMillis())
+                    .setContentTitle(notificationTitle)
+                    .setContentText(notificationText)
+                    .setContentIntent(pendingIntent)
+                    .setSound(ringtoneUri)
+                    .setColor(mContext.getResources().getColor(R.color.dialer_theme_color))
+                    .setOngoing(false);
+            }
 
             CallFeaturesSetting.migrateVoicemailVibrationSettingsIfNeeded(prefs, phoneId);
             final boolean vibrate = prefs.getBoolean(
