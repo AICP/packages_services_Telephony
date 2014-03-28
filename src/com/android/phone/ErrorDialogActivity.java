@@ -31,6 +31,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.Settings;
 import android.net.Uri;
+import android.telephony.TelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
 import android.view.WindowManager;
@@ -54,6 +55,8 @@ public class ErrorDialogActivity extends Activity {
     boolean okClicked = false;
     private Phone mPhone;
     private static final int SERVICE_STATE_CHANGED = 1;
+    private static final int PROGRESS_DIALOG_TIME_OUT_MSG = 2;
+    private static final int PROGRESS_DIALOLG_TIME_OUT = 30000;
     private String mNumber = "";
 
     private Handler mHandler = new Handler() {
@@ -62,6 +65,9 @@ public class ErrorDialogActivity extends Activity {
             switch (msg.what) {
                 case SERVICE_STATE_CHANGED:
                     onServiceStateChanged(msg);
+                    break;
+                case PROGRESS_DIALOG_TIME_OUT_MSG:
+                    disablingAirplaneTimeout();
                     break;
                 default:
                     Log.wtf(TAG, "handleMessage: unexpected message: " + msg);
@@ -97,26 +103,54 @@ public class ErrorDialogActivity extends Activity {
         }
     }
 
+    private void dismissProgressDialog() {
+        if (mPromptProDlg != null && mPromptProDlg.isShowing()) {
+            // close progressDialog
+            mPromptProDlg.dismiss();
+            mPromptProDlg = null;
+        }
+    }
+
+    private void disablingAirplaneTimeout() {
+        Log.d(TAG, "disabling Airplane mode time out");
+        if (mHandler.hasMessages(PROGRESS_DIALOG_TIME_OUT_MSG))
+            mHandler.removeMessages(PROGRESS_DIALOG_TIME_OUT_MSG);
+        dismissProgressDialog();
+        // It's time out to actually place the call.
+        showGenericErrorDialog(R.string.incall_error_out_of_service);
+        unregisterForServiceStateChanged();
+    }
+
+    private boolean hasIccCard() {
+        TelephonyManager telephonyManager = TelephonyManager.getDefault();
+        if (telephonyManager.hasIccCard()){
+            return true;
+        }
+        return false;
+    }
+
     private void onServiceStateChanged(Message msg) {
         ServiceState state = (ServiceState) ((AsyncResult) msg.obj).result;
         Log.d(TAG, "onServiceStateChanged()...  new state = " + state);
-        boolean okToCall = state.getState() == ServiceState.STATE_IN_SERVICE;
-
-        if (okToCall) {
-            if (mPromptProDlg != null && mPromptProDlg.isShowing()) {
-                // close progressDialog
-                mPromptProDlg.dismiss();
-                mPromptProDlg = null;
-            }
-            // It's OK to actually place the call.
-            Log.d(TAG, "onServiceStateChanged: ok to call!");
-            Intent activityIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:"
-                    + mNumber));
-            startActivity(activityIntent);
-
-            // Deregister for the service state change events.
+        if (!hasIccCard()) {
+            dismissProgressDialog();
+            showGenericErrorDialog(R.string.incall_error_out_of_service);
             unregisterForServiceStateChanged();
-            finish();
+        } else {
+            boolean okToCall = state.getState() == ServiceState.STATE_IN_SERVICE;
+
+            if (okToCall) {
+                dismissProgressDialog();
+                // It's OK to actually place the call.
+                Log.d(TAG, "onServiceStateChanged: ok to call!");
+                Intent activityIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:"
+                        + mNumber));
+                startActivity(activityIntent);
+
+                // Deregister for the service state change events.
+                unregisterForServiceStateChanged();
+                finish();
+            }
         }
     }
 
@@ -159,6 +193,7 @@ public class ErrorDialogActivity extends Activity {
         alertDialog.setOnDismissListener(new android.content.DialogInterface.OnDismissListener() {
             public void onDismiss(android.content.DialogInterface dialog) {
                 if (okClicked) {
+                    registerForServiceStateChanged();
                     // turn off airplane mode.
                     Settings.Global.putInt(getContentResolver(), Settings.Global.AIRPLANE_MODE_ON,
                             0);
@@ -166,7 +201,20 @@ public class ErrorDialogActivity extends Activity {
                     intent.putExtra("state", false);
                     sendBroadcast(intent);
 
-                    registerForServiceStateChanged();
+                    int serviceState = PhoneGlobals.getInstance().mCM.getDefaultPhone()
+                            .getServiceState().getState();
+                    if (serviceState == ServiceState.STATE_IN_SERVICE) {
+                        Intent activityIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:"
+                                + mNumber));
+                        startActivity(activityIntent);
+                        unregisterForServiceStateChanged();
+                        finish();
+                    }
+
+                    // handle disabling airplane mode progress dialog time out
+                    mHandler.removeMessages(PROGRESS_DIALOG_TIME_OUT_MSG);
+                    mHandler.sendEmptyMessageDelayed(PROGRESS_DIALOG_TIME_OUT_MSG,
+                            PROGRESS_DIALOLG_TIME_OUT);
 
                     // prompt airplane mode is being turned off.
                     mPromptProDlg = new ProgressDialog(ErrorDialogActivity.this);
@@ -261,5 +309,7 @@ public class ErrorDialogActivity extends Activity {
             mPromptProDlg.dismiss();
             mPromptProDlg = null;
         }
+        if (mHandler.hasMessages(PROGRESS_DIALOG_TIME_OUT_MSG))
+            mHandler.removeMessages(PROGRESS_DIALOG_TIME_OUT_MSG);
     }
 }
