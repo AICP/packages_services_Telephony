@@ -129,4 +129,8 @@
     <string name="entry_20dip">20dip</string>
     <string name="entry_25dip">25dip</string>
 
+    <!-- Detailed InCall Info -->
+    <string name="detailed_incall_info_title">Detailed incall information</string>
+    <string name="detailed_incall_info_summary">Display additional information (organization, position, city and nickname) on full incall screen.</string>
+
 </resources>
