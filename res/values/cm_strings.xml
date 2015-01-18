@@ -393,6 +393,82 @@
     <string name="preferred_lte">"Enable 4G data only"</string>
     <string name="preferred_lte_summary">"When enable 4G data only, voice and SMS will not work"</string>
 
+    <!-- Sim contacts management -->
+    <string name="contactScreen">Manage SIM contacts</string>
+    <string name="exportContactScreen">Export phone contacts to SIM</string>
+    <string name="addSimEntries">Add SIM contact</string>
+    <string name="deleteAllSimEntries">Delete all SIM contacts</string>
+    <string name="deleteSimContacts">Deleting SIM contacts\u2026</string>
+    <string name="editContact">Edit</string>
+    <string name="sendSms">Send SMS</string>
+    <string name="delete">Delete</string>
+    <string name="dial">Dial</string>
+    <string name="enterName">Enter name:</string>
+    <string name="enterNumber">Enter phone number:</string>
+    <string name="hintName">Name</string>
+    <string name="hintPhonenumber">Phone number</string>
+    <string name="contactAddSuccess">Succesfully added contact to SIM</string>
+    <string name="contactAddFailed">Failed to add contact to SIM</string>
+    <string name="contactUpdateSuccess">Succesfully updated contact in SIM</string>
+    <string name="contactUpdateFailed">Failed to update contact in SIM</string>
+    <string name="contactdeleteSuccess">Succesfully deleted contact from SIM</string>
+    <string name="contactdeleteFailed">Failed to delete contact from SIM</string>
+    <string name="allContactdeleteSuccess">Succesfully deleted all contacts from SIM</string>
+    <string name="allContactdeleteFailed">Failed to delete all contacts from SIM</string>
+    <string name="exportAllcontatsSuccess">Succesfully exported all contacts to SIM</string>
+    <string name="exportAllcontatsFailed">Failed to export all contacts to SIM</string>
+    <string name="exportAllcontatsNoContacts">No contacts found to export to SIM</string>
+    <string name="cursorError">Invalid cursor data</string>
+    <!-- Set Subscription screen: set subscription option name -->
+    <string name="set_subscription">Configure SIM cards</string>
+
+    <!-- Set Subscription screen: Message shown in error dialog -->
+    <string name="set_subscription_error_atleast_one">Select at least one SIM card</string>
+    <!-- Set Subscription screen: Progress message -->
+    <string name="set_uicc_subscription_progress">Setting subscription\u2026</string>
+    <!-- Set Subscription screen: Set subscriptio success -->
+    <string name="set_sub_success">Subscription was set successfully</string>
+    <!-- Set Subscription screen: Set subscriptio success -->
+    <string name="set_sub_failed">Failed to set subscription</string>
+    <!-- Set Subscription screen: Subscription 1 -->
+    <string name="set_sub_1">SIM card 1: </string>
+    <!-- Set Subscription screen: Subscription 2 -->
+    <string name="set_sub_2">SIM card 2: </string>
+    <!-- Set Subscription screen: Subscription 3 -->
+    <string name="set_sub_3">SIM card 3: </string>
+    <!-- Set Subscription screen: Subscription activate success -->
+    <string name="set_sub_activate_success">Activation successful</string>
+    <!-- Set Subscription screen: Subscription deactivate success -->
+    <string name="set_sub_deactivate_success">Deactivation successful</string>
+    <!-- Set Subscription screen: Subscription activate failed -->
+    <string name="set_sub_activate_failed">Activation failed</string>
+    <!-- Set Subscription screen: Subscription Global activate failed -->
+    <string name="set_sub_global_activate_failed">Global activation failed</string>
+    <!-- Set Subscription screen: Subscription Global deactivate failed -->
+    <string name="set_sub_global_deactivate_failed">Global deactivation failed</string>
+    <!-- Set Subscription screen: Subscription deactivate failed -->
+    <string name="set_sub_deactivate_failed">Deactivation failed</string>
+    <!-- Set Subscription screen: Subscription activate not supported -->
+    <string name="set_sub_activate_not_supported">Activation not supported</string>
+    <!-- Set Subscription screen: Subscription deactivate not supported -->
+    <string name="set_sub_deactivate_not_supported">Deactivation not supported</string>
+    <!-- Set Subscription screen: No change in subscription -->
+    <string name="set_sub_no_change">No change in subscription</string>
+    <!-- Set Subscription screen: New cards available -->
+    <string name="new_cards_available">New card available. Please configure your subscriptions.</string>
+    <!-- Set Subscription screen: Configure subscription dialog title -->
+    <string name="config_sub_title">Configure subscriptions</string>
+    <!-- Set Subscription screen: Deactivate All subscription not supported -->
+    <string name="deact_all_sub_not_supported">Deactivation of all the subscriptions is not supported.</string>
+    <!-- Set Subscription screen: Deactivate All subscription not supported -->
+    <string name="set_sub_not_supported_phone_in_call">Activating or deactivating subscriptions is not allowed during a call.</string>
+
+    <!-- Manual PLMN scan data disconnect dialog text -->
+    <string name="disconnect_data_confirm">Data service needs to be disconnected temporarily. Are you sure you want to continue?</string>
+
+    <!-- Call settings: title of the dialog that lets you select contacts from the SIM. -->
+    <string name="simContacts_title_cm">Manage SIM card contacts</string>
+
     <!-- Proximity speaker -->
     <string name="display_category_prox_auto_speaker_title">Proximity speaker settings</string>
     <string name="prox_auto_speaker_title">Automatic proximity speaker</string>
