@@ -513,8 +513,7 @@ public class MobileNetworkSettings extends PreferenceActivity
         mButton4glte = (SwitchPreference)findPreference(BUTTON_4G_LTE_KEY);
         mButton4glte.setOnPreferenceChangeListener(this);
 
-        mShow4GForLTE = Settings.System.getIntForUser(this.getContentResolver(),
-                                    Settings.System.SHOW_FOURG, 0, UserHandle.USER_CURRENT) == 1;
+        mShow4GForLTE = show4GForLTE(this);
 
         //get UI object references
         PreferenceScreen prefSet = getPreferenceScreen();
@@ -1414,7 +1413,7 @@ public class MobileNetworkSettings extends PreferenceActivity
     }
 
     private static boolean show4GForLTE(Context context) {
-        try {
+        /*try {
             Context con = context.createPackageContext("com.android.systemui", 0);
             int id = con.getResources().getIdentifier("config_show4GForLTE",
                     "bool", "com.android.systemui");
@@ -1422,7 +1421,9 @@ public class MobileNetworkSettings extends PreferenceActivity
         } catch (NameNotFoundException e) {
             loge("NameNotFoundException for show4GFotLTE");
             return false;
-        }
+        }*/
+        return (Settings.System.getIntForUser(context.getContentResolver(),
+                Settings.System.SHOW_FOURG, 0, UserHandle.USER_CURRENT) == 1);
     }
 
     private static boolean isGlobalCDMA(int subId, boolean isLteOnCdma) {
