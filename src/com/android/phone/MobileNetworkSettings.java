@@ -39,7 +39,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.res.Resources;
 import android.net.Uri;
 import android.os.AsyncResult;
 import android.os.Bundle;
@@ -54,7 +53,6 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
-import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneStateListener;
@@ -500,8 +498,15 @@ public class MobileNetworkSettings extends PreferenceActivity
         mButton4glte = (SwitchPreference)findPreference(BUTTON_4G_LTE_KEY);
         mButton4glte.setOnPreferenceChangeListener(this);
 
-        mShow4GForLTE = Settings.System.getIntForUser(this.getContentResolver(),
-                                    Settings.System.SHOW_FOURG, 0, UserHandle.USER_CURRENT) == 1;
+        try {
+            Context con = createPackageContext("com.android.systemui", 0);
+            int id = con.getResources().getIdentifier("config_show4GForLTE",
+                    "bool", "com.android.systemui");
+            mShow4GForLTE = con.getResources().getBoolean(id);
+        } catch (NameNotFoundException e) {
+            loge("NameNotFoundException for show4GFotLTE");
+            mShow4GForLTE = false;
+        }
 
         //get UI object references
         PreferenceScreen prefSet = getPreferenceScreen();
