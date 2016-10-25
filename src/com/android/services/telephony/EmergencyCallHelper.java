@@ -17,24 +17,24 @@
 package com.android.services.telephony;
 
 import android.content.Context;
-
 import android.content.Intent;
-import android.os.AsyncResult;
-import android.os.Handler;
-import android.os.Message;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
 import android.telephony.TelephonyManager;
 
-import com.android.internal.os.SomeArgs;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
-import com.android.phone.PhoneUtils;
 import com.android.internal.telephony.Call;
+import com.android.internal.telephony.PhoneFactory;
 
+import com.android.phone.PhoneUtils;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * Helper class that implements special behavior related to emergency calls. Specifically, this
@@ -42,7 +42,13 @@ import com.android.internal.telephony.Call;
  * (i.e. the device is in airplane mode), by forcibly turning the radio back on, waiting for it to
  * come up, and then retrying the emergency call.
  */
-public class EmergencyCallHelper {
+public class EmergencyCallHelper implements EmergencyCallStateListener.Callback {
+
+    private final Context mContext;
+    private EmergencyCallStateListener.Callback mCallback;
+    private List<EmergencyCallStateListener> mListeners;
+    private List<EmergencyCallStateListener> mInProgressListeners;
+    private boolean mIsEmergencyCallingEnabled;
 
     /**
      * Receives the result of the EmergencyCallHelper's attempt to turn on the radio.
@@ -95,19 +101,27 @@ public class EmergencyCallHelper {
     private static int mPhoneCount;
 
     public EmergencyCallHelper(Context context) {
-        Log.d(this, "EmergencyCallHelper constructor.");
         mContext = context;
+        mInProgressListeners = new ArrayList<>(2);
     }
 
+    private void setupListeners() {
+        if (mListeners != null) {
+            return;
+        }
+        mListeners = new ArrayList<>(2);
+        for (int i = 0; i < TelephonyManager.getDefault().getPhoneCount(); i++) {
+            mListeners.add(new EmergencyCallStateListener());
+        }
+    }
     /**
      * Starts the "turn on radio" sequence. This is the (single) external API of the
      * EmergencyCallHelper class.
      *
      * This method kicks off the following sequence:
-     * - Power on the radio.
+     * - Power on the radio for each Phone
      * - Listen for the service state change event telling us the radio has come up.
-     * - Retry if we've gone {@link #TIME_BETWEEN_RETRIES_MILLIS} without any response from the
-     *   radio.
+     * - Retry if we've gone a significant amount of time without any response from the radio.
      * - Finally, clean up any leftover state.
      *
      * This method is safe to call from any thread, since it simply posts a message to the
@@ -254,28 +268,39 @@ public class EmergencyCallHelper {
             }
         }
     }
+ 
+    public void enableEmergencyCalling(EmergencyCallStateListener.Callback callback) {
+        setupListeners();
+        mCallback = callback;
+        mInProgressListeners.clear();
+        mIsEmergencyCallingEnabled = false;
+        for (int i = 0; i < TelephonyManager.getDefault().getPhoneCount(); i++) {
+            Phone phone = PhoneFactory.getPhone(i);
+            if (phone == null)
+                continue;
 
+            mInProgressListeners.add(mListeners.get(i));
+            mListeners.get(i).waitForRadioOn(phone, this);
+        }
+
+        powerOnRadio();
+    }
     /**
-     * Attempt to power on the radio (i.e. take the device out of airplane mode.)
-     * Additionally, start listening for service state changes; we'll eventually get an
-     * onServiceStateChanged() callback when the radio successfully comes up.
+     * Attempt to power on the radio (i.e. take the device out of airplane mode). We'll eventually
+     * get an onServiceStateChanged() callback when the radio successfully comes up.
      */
     private void powerOnRadio() {
         Log.d(this, "powerOnRadio().");
 
-        // We're about to turn on the radio, so arrange to be notified when the sequence is
-        // complete.
-        registerForServiceStateChanged();
-
         // If airplane mode is on, we turn it off the same way that the Settings activity turns it
         // off.
         if (Settings.Global.getInt(mContext.getContentResolver(),
-                                   Settings.Global.AIRPLANE_MODE_ON, 0) > 0) {
+                Settings.Global.AIRPLANE_MODE_ON, 0) > 0) {
             Log.d(this, "==> Turning off airplane mode.");
 
             // Change the system setting
             Settings.Global.putInt(mContext.getContentResolver(),
-                                   Settings.Global.AIRPLANE_MODE_ON, 0);
+                    Settings.Global.AIRPLANE_MODE_ON, 0);
 
             // Post the broadcast intend for change in airplane mode
             // TODO: We really should not be in charge of sending this broadcast.
@@ -284,36 +309,12 @@ public class EmergencyCallHelper {
             Intent intent = new Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED);
             intent.putExtra("state", false);
             mContext.sendBroadcastAsUser(intent, UserHandle.ALL);
-        } else {
-            // Otherwise, for some strange reason the radio is off (even though the Settings
-            // database doesn't think we're in airplane mode.)  In this case just turn the radio
-            // back on.
-            Log.d(this, "==> (Apparently) not in airplane mode; manually powering radio on.");
-            for (int phoneId =0; phoneId < mPhoneCount; phoneId++) {
-                 Phone phone = PhoneFactory.getPhone(phoneId);
-                 if (phone != null && !phone.isRadioOn()) {
-                     phone.setRadioPower(true);
-                 }
-            }
         }
     }
 
     /**
-     * Clean up when done with the whole sequence: either after successfully turning on the radio,
-     * or after bailing out because of too many failures.
-     *
-     * The exact cleanup steps are:
-     * - Notify callback if we still hadn't sent it a response.
-     * - Double-check that we're not still registered for any telephony events
-     * - Clean up any extraneous handler messages (like retry timeouts) still in the queue
-     *
-     * Basically this method guarantees that there will be no more activity from the
-     * EmergencyCallHelper until someone kicks off the whole sequence again with another call to
-     * {@link #startTurnOnRadioSequence}
-     *
-     * TODO: Do the work for the comment below:
-     * Note we don't call this method simply after a successful call to placeCall(), since it's
-     * still possible the call will disconnect very quickly with an OUT_OF_SERVICE error.
+     * This method is called from multiple Listeners on the Main Looper.
+     * Synchronization is not necessary.
      */
     private void cleanup() {
         Log.d(this, "cleanup()");
@@ -358,11 +359,12 @@ public class EmergencyCallHelper {
         }
     }
 
-    private void onComplete(Phone phone, boolean isRadioReady) {
-        if (mCallback != null) {
-            Callback tempCallback = mCallback;
-            mCallback = null;
-            tempCallback.onComplete(phone, isRadioReady);
+    @Override
+    public void onComplete(EmergencyCallStateListener listener, boolean isRadioReady) {
+        mIsEmergencyCallingEnabled |= isRadioReady;
+        mInProgressListeners.remove(listener);
+        if (mCallback != null && mInProgressListeners.isEmpty()) {
+            mCallback.onComplete(null, mIsEmergencyCallingEnabled);
         }
     }
 
