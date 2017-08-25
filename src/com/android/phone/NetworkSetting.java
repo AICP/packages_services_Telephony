@@ -18,7 +18,9 @@ package com.android.phone;
 
 import android.app.ActionBar;
 import android.app.Dialog;
+import android.app.IThemeCallback;
 import android.app.ProgressDialog;
+import android.app.ThemeManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -27,6 +29,7 @@ import android.content.ServiceConnection;
 import android.os.AsyncResult;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
@@ -35,6 +38,7 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
+import android.provider.Settings.Secure;
 import android.telephony.ServiceState;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -94,6 +98,9 @@ public class NetworkSetting extends PreferenceActivity
 
     //Menu Item(s)
     private MenuItem mSearchButton;
+
+    private int mTheme;
+    private ThemeManager mThemeManager;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -247,6 +254,20 @@ public class NetworkSetting extends PreferenceActivity
 
     @Override
     protected void onCreate(Bundle icicle) {
+        final int themeMode = Secure.getInt(getContentResolver(),
+                Secure.THEME_PRIMARY_COLOR, 1);
+        final int accentColor = Secure.getInt(getContentResolver(),
+                Secure.THEME_ACCENT_COLOR, 0);
+        mThemeManager = (ThemeManager) getSystemService(Context.THEME_SERVICE);
+        if (mThemeManager != null) {
+            mThemeManager.addCallback(mThemeCallback);
+        }
+        if (themeMode != 0 || accentColor != 0) {
+            getTheme().applyStyle(mTheme, true);
+        }
+        if (themeMode == 1) {
+            getTheme().applyStyle(R.style.status_bar, true);
+        }
         super.onCreate(icicle);
 
         mUm = (UserManager) getSystemService(Context.USER_SERVICE);
@@ -291,6 +312,22 @@ public class NetworkSetting extends PreferenceActivity
 
         displayEmptyNetworkList();
     }
+
+    private final IThemeCallback mThemeCallback = new IThemeCallback.Stub() {
+
+        @Override
+        public void onThemeChanged(int themeMode, int color) {
+            onCallbackAdded(themeMode, color);
+            NetworkSetting.this.runOnUiThread(() -> {
+                NetworkSetting.this.recreate();
+            });
+        }
+
+        @Override
+        public void onCallbackAdded(int themeMode, int color) {
+            mTheme = color;
+        }
+    };
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
