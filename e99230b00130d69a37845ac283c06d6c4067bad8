@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "206c435f_cf1d2010",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3
+      },
+      "writtenOn": "2021-08-04T07:39:03Z",
+      "side": 1,
+      "message": "fw_opt_telephony commit is here: https://review.lineageos.org/c/LineageOS/android_frameworks_opt_telephony/+/314474",
+      "revId": "e99230b00130d69a37845ac283c06d6c4067bad8",
+      "serverId": "9f904cbb-a964-4fab-a7dc-5cfc4d5c238b"
+    }
+  ]
+}
